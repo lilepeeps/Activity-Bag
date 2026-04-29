@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase-client';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import StepFamily from '@/components/setup/StepFamily';
 import StepChild from '@/components/setup/StepChild';
@@ -12,6 +13,7 @@ import StepConfirm from '@/components/setup/StepConfirm';
 export default function SetupPage() {
   const [step, setStep] = useState(1);
   const [familyName, setFamilyName] = useState('');
+  const [familyId, setFamilyId] = useState<string | null>(null);
   const [childName, setChildName] = useState('');
   const [avatarAnimal, setAvatarAnimal] = useState('unicorn');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
@@ -19,10 +21,63 @@ export default function SetupPage() {
   const [error, setError] = useState('');
   const { user } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
+
+  // Check if user already has a family on mount
+  useEffect(() => {
+    const checkExistingFamily = async () => {
+      if (!user) return;
+
+      try {
+        const { data: family, error: familyError } = await supabase
+          .from('families')
+          .select('*')
+          .eq('parent_user_id', user.id)
+          .single();
+
+        if (!familyError && family) {
+          // User has an existing family, skip to child creation
+          setFamilyId(family.id);
+          setFamilyName(family.family_name);
+          setStep(2); // Skip family creation step
+        }
+        // If no family found (familyError), user needs to create one
+      } catch (err) {
+        console.error('Error checking family:', err);
+      }
+    };
+
+    checkExistingFamily();
+  }, [user]);
 
   const handleStepFamily = async (name: string) => {
-    setFamilyName(name);
-    setStep(2);
+    if (!user) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create new family
+      const familyRes = await fetch('/api/setup/family', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          familyName: name,
+        }),
+      });
+
+      if (!familyRes.ok) throw new Error('Failed to create family');
+      const familyData = await familyRes.json();
+
+      setFamilyId(familyData.id);
+      setFamilyName(name);
+      setStep(2);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create family');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStepChild = async (name: string, animal: string) => {
@@ -37,27 +92,13 @@ export default function SetupPage() {
   };
 
   const handleStepConfirm = async () => {
-    if (!user) return;
+    if (!user || !familyId) return;
 
     setLoading(true);
     setError('');
 
     try {
-      // Create family
-      const familyRes = await fetch('/api/setup/family', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          familyName,
-        }),
-      });
-
-      if (!familyRes.ok) throw new Error('Failed to create family');
-      const familyData = await familyRes.json();
-      const familyId = familyData.id;
-
-      // Create child
+      // Create child (familyId already set from existing family or new creation)
       const childRes = await fetch('/api/setup/child', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
