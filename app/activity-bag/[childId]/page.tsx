@@ -80,8 +80,10 @@ export default function ActivityBagPage() {
             child_id: childId,
             completed_at: new Date().toISOString(),
             parent_approved: true,
+            approved_by: null,
+            approved_at: null,
             reward_claimed: false,
-          },
+          } as any,
         ]);
 
       if (error) throw error;
