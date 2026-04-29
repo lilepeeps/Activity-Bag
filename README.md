@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎒 Activity Bag
 
-## Getting Started
+A lightweight, engaging web app that helps children get activity ideas and earn rewards!
 
-First, run the development server:
+Parents set up personalized activity bags with customized suggestions, and children can browse, complete, and celebrate their activities.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Features
+
+### For Parents
+- 👨‍👩‍👧‍👦 Multi-family support with secure data isolation
+- 🎨 Customize activities for each child
+- 🎁 Configure reward animals
+- 📊 Track activity completion (optional parent approval)
+- 💰 Optional monetary allowance system
+
+### For Children  
+- 🎲 Browse and complete activities
+- 🎉 Celebrate with cute animal rewards
+- 📝 Self-report completions
+- 📱 Mobile-friendly swipe navigation
+
+## Tech Stack
+
+- **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + RLS)
+- **Hosting**: Vercel
+- **Auth**: Supabase Email/Password
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- Supabase account (free tier works great!)
+- GitHub account (for Vercel deployment)
+
+### Setup
+
+1. **Clone & Install**
+   ```bash
+   git clone https://github.com/yourusername/activity-bag.git
+   cd activity-bag
+   npm install
+   ```
+
+2. **Create Supabase Project**
+   - Go to [supabase.com](https://supabase.com)
+   - Create new project
+   - Copy your credentials
+
+3. **Set Environment Variables**
+   ```bash
+   cp .env.local.example .env.local
+   # Add your Supabase URL and Anon Key
+   ```
+
+4. **Setup Database**
+   - Follow the SQL setup in `SETUP_GUIDE.md`
+
+5. **Run Dev Server**
+   ```bash
+   npm run dev
+   # Visit http://localhost:3000
+   ```
+
+6. **Deploy**
+   - Push to GitHub
+   - Connect to Vercel
+   - Add environment variables
+   - Deploy!
+
+## Project Structure
+
+```
+├── app/
+│   ├── (auth)/           # Login/Signup
+│   ├── setup/            # Parent onboarding
+│   ├── activity-bag/     # Main app
+│   ├── dashboard/        # Child management
+│   └── api/              # Backend routes
+├── components/           # React components
+├── hooks/                # Custom hooks
+├── lib/                  # Utilities & types
+└── SETUP_GUIDE.md        # Detailed setup instructions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Development Roadmap
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### v1 (MVP)
+- ✅ Parent signup & setup flow
+- ✅ Activity customization
+- ✅ Basic activity bag UI
+- ⏳ Activity completion tracking
+- ⏳ Digital rewards
+- ⏳ Dashboard
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### v2+
+- [ ] Multiple children per family
+- [ ] Parent approval workflow
+- [ ] Monetary rewards & allowance tracking
+- [ ] Activity streaks & weekly summaries
+- [ ] Custom reward animals (photo upload)
+- [ ] Activity templates (share with other families)
+- [ ] Mobile app
 
-## Learn More
+## Contributing
 
-To learn more about Next.js, take a look at the following resources:
+This is a personal/family project. Feel free to fork and customize for your needs!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+MIT
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Get started:** See `SETUP_GUIDE.md` for detailed setup instructions!
