@@ -129,7 +129,7 @@ export async function copyDefaultActivitiesToChild(childId: string) {
 
   if (fetchError) return { error: fetchError };
 
-  const activitiesToInsert = defaultActivities?.map((a) => ({
+  const activitiesToInsert = defaultActivities?.map((a: any) => ({
     child_id: childId,
     emoji: a.emoji,
     label: a.label,
