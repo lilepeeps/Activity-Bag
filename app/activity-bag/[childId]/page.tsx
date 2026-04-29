@@ -72,7 +72,7 @@ export default function ActivityBagPage() {
     if (!child) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('activity_completions')
         .insert([
           {
@@ -83,7 +83,7 @@ export default function ActivityBagPage() {
             approved_by: null,
             approved_at: null,
             reward_claimed: false,
-          } as any,
+          },
         ]);
 
       if (error) throw error;
