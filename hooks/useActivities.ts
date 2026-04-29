@@ -66,7 +66,7 @@ export async function addActivity(
   category: CategoryType,
 ) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('activities')
     .insert([
       {
@@ -85,21 +85,23 @@ export async function addActivity(
 
 export async function deleteActivity(activityId: string) {
   const supabase = createClient();
-  const { error } = await supabase.from('activities').delete().eq('id', activityId);
+  const { error } = await (supabase as any).from('activities').delete().eq('id', activityId);
 
   return { error };
 }
 
 export async function completeActivity(activityId: string, childId: string) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('activity_completions')
     .insert([
       {
         activity_id: activityId,
         child_id: childId,
         completed_at: new Date().toISOString(),
-        parent_approved: true, // Self-report counts as approved for MVP
+        parent_approved: true,
+        approved_by: null,
+        approved_at: null,
         reward_claimed: false,
       },
     ])
@@ -111,7 +113,7 @@ export async function completeActivity(activityId: string, childId: string) {
 
 export async function getDefaultActivities() {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('default_activities')
     .select('*')
     .order('category', { ascending: true });
@@ -121,7 +123,7 @@ export async function getDefaultActivities() {
 
 export async function copyDefaultActivitiesToChild(childId: string) {
   const supabase = createClient();
-  const { data: defaultActivities, error: fetchError } = await supabase
+  const { data: defaultActivities, error: fetchError } = await (supabase as any)
     .from('default_activities')
     .select('*');
 
@@ -135,7 +137,7 @@ export async function copyDefaultActivitiesToChild(childId: string) {
     custom: false,
   })) || [];
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('activities')
     .insert(activitiesToInsert);
 

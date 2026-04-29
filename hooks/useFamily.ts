@@ -59,7 +59,7 @@ export function useFamily() {
 
 export async function createFamily(userId: string, familyName: string) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('families')
     .insert([{ parent_user_id: userId, family_name: familyName }])
     .select()
@@ -74,7 +74,7 @@ export async function createChild(
   avatarAnimal: string,
 ) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('children')
     .insert([{ family_id: familyId, name, avatar_animal: avatarAnimal }])
     .select()
@@ -88,7 +88,7 @@ export async function updateChild(
   updates: Record<string, any>,
 ) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('children')
     .update(updates)
     .eq('id', childId)
