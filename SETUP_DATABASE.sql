@@ -55,6 +55,15 @@ CREATE TABLE default_activities (
   created_at timestamp DEFAULT now()
 );
 
+CREATE TABLE allowance_payouts (
+  id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+  child_id uuid NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+  amount_cents integer NOT NULL,
+  paid_at timestamp DEFAULT now(),
+  note text,
+  created_at timestamp DEFAULT now()
+);
+
 -- ============================================
 -- 2. SEED DEFAULT ACTIVITIES
 -- ============================================
@@ -88,6 +97,7 @@ ALTER TABLE children ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_completions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE default_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE allowance_payouts ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- 4. CREATE RLS POLICIES - FAMILIES TABLE
@@ -232,6 +242,32 @@ CREATE POLICY "completions_update_own"
 CREATE POLICY "default_activities_select_public"
   ON default_activities FOR SELECT
   USING (true);
+
+-- ============================================
+-- 9. CREATE RLS POLICIES - ALLOWANCE_PAYOUTS TABLE
+-- ============================================
+
+-- Parents can view payouts for their children
+CREATE POLICY "payouts_select_own"
+  ON allowance_payouts FOR SELECT
+  USING (
+    child_id IN (
+      SELECT c.id FROM children c
+      INNER JOIN families f ON c.family_id = f.id
+      WHERE f.parent_user_id = auth.uid()
+    )
+  );
+
+-- Parents can insert payouts for their children
+CREATE POLICY "payouts_insert_own"
+  ON allowance_payouts FOR INSERT
+  WITH CHECK (
+    child_id IN (
+      SELECT c.id FROM children c
+      INNER JOIN families f ON c.family_id = f.id
+      WHERE f.parent_user_id = auth.uid()
+    )
+  );
 
 -- ============================================
 -- SETUP COMPLETE!

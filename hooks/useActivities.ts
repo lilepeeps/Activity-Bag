@@ -90,7 +90,11 @@ export async function deleteActivity(activityId: string) {
   return { error };
 }
 
-export async function completeActivity(activityId: string, childId: string) {
+export async function completeActivity(
+  activityId: string,
+  childId: string,
+  parentApproved: boolean | null = true,
+) {
   const supabase = createClient();
   const { data, error } = await (supabase as any)
     .from('activity_completions')
@@ -99,9 +103,9 @@ export async function completeActivity(activityId: string, childId: string) {
         activity_id: activityId,
         child_id: childId,
         completed_at: new Date().toISOString(),
-        parent_approved: true,
-        approved_by: null,
-        approved_at: null,
+        parent_approved: parentApproved,
+        approved_by: parentApproved === true ? (await supabase.auth.getUser()).data.user?.id : null,
+        approved_at: parentApproved === true ? new Date().toISOString() : null,
         reward_claimed: false,
       },
     ])

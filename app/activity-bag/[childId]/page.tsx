@@ -7,6 +7,9 @@ import { Activity, Child, ANIMAL_EMOJIS } from '@/lib/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ActivityCarousel from '@/components/ActivityCarousel';
 import CompletionHistory from '@/components/CompletionHistory';
+import PendingApprovals from '@/components/PendingApprovals';
+import EarningsTracker from '@/components/EarningsTracker';
+import { useEarnings } from '@/hooks/useEarnings';
 import { ActivityCompletion } from '@/lib/types';
 
 export default function ActivityBagPage() {
@@ -20,8 +23,14 @@ export default function ActivityBagPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [showEarnings, setShowEarnings] = useState(false);
 
   const supabase = createClient();
+  const { earnings, loading: earningsLoading } = useEarnings(
+    childId,
+    child?.weekly_allowance_cents || 25,
+    child?.monetary_enabled || false,
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,6 +81,9 @@ export default function ActivityBagPage() {
     if (!child) return;
 
     try {
+      // Determine if approval is required based on monetary_enabled flag
+      const parentApproved = child.monetary_enabled ? null : true;
+
       const { error } = await (supabase as any)
         .from('activity_completions')
         .insert([
@@ -79,9 +91,9 @@ export default function ActivityBagPage() {
             activity_id: activityId,
             child_id: childId,
             completed_at: new Date().toISOString(),
-            parent_approved: true,
-            approved_by: null,
-            approved_at: null,
+            parent_approved: parentApproved,
+            approved_by: parentApproved === true ? (await supabase.auth.getUser()).data.user?.id : null,
+            approved_at: parentApproved === true ? new Date().toISOString() : null,
             reward_claimed: false,
           },
         ]);
@@ -99,7 +111,10 @@ export default function ActivityBagPage() {
         setCompletions(completionsData || []);
       }
 
-      console.log('Activity completed! 🎉');
+      const message = child.monetary_enabled
+        ? 'Activity submitted for parent approval! ⏳'
+        : 'Activity completed! 🎉';
+      console.log(message);
     } catch (err) {
       console.error('Error completing activity:', err);
     }
@@ -161,25 +176,68 @@ export default function ActivityBagPage() {
 
         <div className="max-w-3xl mx-auto">
           {/* Header with back button */}
-          <div className="flex items-center justify-between pt-6 px-4 mb-12">
-            <div>
-              <h1 className="text-5xl sm:text-6xl font-black">
-                <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-yellow-300 bg-clip-text text-transparent">
-                  {ANIMAL_EMOJIS[child.avatar_animal as keyof typeof ANIMAL_EMOJIS] || '🎒'}{' '}
-                  {child.name}
-                </span>
-              </h1>
-              <p className="text-white/60 font-semibold mt-2">
-                {activities.length} activity{activities.length !== 1 ? 'ies' : ''} waiting
-              </p>
+          <div className="pt-6 px-4 mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-5xl sm:text-6xl font-black">
+                  <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-yellow-300 bg-clip-text text-transparent">
+                    {ANIMAL_EMOJIS[child.avatar_animal as keyof typeof ANIMAL_EMOJIS] || '🎒'}{' '}
+                    {child.name}
+                  </span>
+                </h1>
+                <p className="text-white/60 font-semibold mt-2">
+                  {activities.length} activity{activities.length !== 1 ? 'ies' : ''} waiting
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white font-bold rounded-full transition-all duration-200 text-sm"
+              >
+                ← Back
+              </button>
             </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white font-bold rounded-full transition-all duration-200 text-sm"
-            >
-              ← Back
-            </button>
+
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              {child.monetary_enabled && (
+                <button
+                  onClick={() => setShowEarnings(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-full transition-all duration-200 text-sm"
+                >
+                  💰 View Earnings
+                </button>
+              )}
+              <button
+                onClick={() => router.push(`/dashboard/${childId}/settings`)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white font-bold rounded-full transition-all duration-200 text-sm"
+              >
+                ⚙️ Settings
+              </button>
+            </div>
           </div>
+
+          {/* Pending Approvals Section */}
+          {child.monetary_enabled && completions.filter(c => c.parent_approved === null).length > 0 && (
+            <div className="px-4 mb-8">
+              <PendingApprovals
+                completions={completions}
+                activities={activities}
+                childName={child.name}
+                onApprovalChange={() => {
+                  // Refetch completions after approval change
+                  const refetch = async () => {
+                    const { data: completionsData } = await supabase
+                      .from('activity_completions')
+                      .select('*')
+                      .eq('child_id', childId)
+                      .order('completed_at', { ascending: false });
+                    if (completionsData) setCompletions(completionsData);
+                  };
+                  refetch();
+                }}
+              />
+            </div>
+          )}
 
           {/* Activity Carousel */}
           {activities.length > 0 ? (
@@ -228,6 +286,32 @@ export default function ActivityBagPage() {
           isOpen={showHistory}
           onClose={() => setShowHistory(false)}
         />
+
+        {/* Earnings Modal */}
+        {showEarnings && child && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 max-w-md max-h-96 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-black text-white">💰 Your Earnings</h2>
+                <button
+                  onClick={() => setShowEarnings(false)}
+                  className="text-white/60 hover:text-white text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {earningsLoading ? (
+                <div className="text-center text-white/60">Loading earnings...</div>
+              ) : (
+                <EarningsTracker
+                  earnings={earnings}
+                  rewardAmountCents={child.weekly_allowance_cents || 25}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );

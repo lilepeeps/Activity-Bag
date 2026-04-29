@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<Record<string, number>>({});
 
   const supabase = createClient();
 
@@ -45,6 +46,24 @@ export default function DashboardPage() {
 
           if (childrenError) throw childrenError;
           setChildren(childrenData || []);
+
+          // Fetch pending approvals count for each child
+          if (childrenData && childrenData.length > 0) {
+            const counts: Record<string, number> = {};
+
+            for (const child of childrenData) {
+              if (child.monetary_enabled) {
+                const { count } = await supabase
+                  .from('activity_completions')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('child_id', child.id)
+                  .is('parent_approved', null);
+                counts[child.id] = count || 0;
+              }
+            }
+
+            setPendingApprovalsCount(counts);
+          }
         }
 
         setError('');
@@ -173,9 +192,16 @@ export default function DashboardPage() {
                       style={{ animationDelay: `${idx * 0.1}s` }}
                     >
                       <div
-                        className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 h-full flex flex-col hover:from-white/20 hover:to-white/10 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl cursor-pointer group"
+                        className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 h-full flex flex-col hover:from-white/20 hover:to-white/10 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl cursor-pointer group relative"
                         onClick={() => router.push(`/activity-bag/${child.id}`)}
                       >
+                        {/* Pending Approvals Badge */}
+                        {pendingApprovalsCount[child.id] > 0 && (
+                          <div className="absolute top-4 right-4 bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                            {pendingApprovalsCount[child.id]}
+                          </div>
+                        )}
+
                         {/* Animal Emoji */}
                         <div className="text-8xl mb-6 text-center group-hover:scale-125 transition-transform duration-300">
                           {ANIMAL_EMOJIS[
