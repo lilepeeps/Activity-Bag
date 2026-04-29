@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       custom: false,
     }));
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('activities')
       .insert(selectedActivities)
       .select();

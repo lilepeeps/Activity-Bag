@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('families')
       .insert([
         {
